@@ -1,48 +1,93 @@
-import { useParams, Link } from 'react-router-dom';
-import { getStockBySymbol } from '@/data/mockStocks';
-import { StockHeader } from '@/components/stock/StockHeader';
-import { StockMetrics } from '@/components/stock/StockMetrics';
-import { PriceChart } from '@/components/stock/PriceChart';
-import { AnalysisSection } from '@/components/stock/AnalysisSection';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, SearchX } from 'lucide-react';
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+
+async function fetchStockDetail(symbol: string) {
+  const res = await fetch(`/api/quote?symbol=${symbol}`);
+  if (!res.ok) throw new Error("Failed");
+  return res.json();
+}
 
 export default function StockDetail() {
   const { symbol } = useParams<{ symbol: string }>();
-  const stock = symbol ? getStockBySymbol(symbol) : undefined;
 
-  if (!stock) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["stockDetail", symbol],
+    queryFn: () => fetchStockDetail(symbol!),
+    enabled: !!symbol,
+  });
+
+  if (isLoading) {
     return (
-      <main className="min-h-screen pt-24 pb-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-md mx-auto text-center py-20">
-            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mx-auto mb-6">
-              <SearchX className="w-10 h-10 text-muted-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Stock Not Found</h1>
-            <p className="text-muted-foreground mb-6">
-              We couldn't find a stock with symbol "{symbol}". Please check the symbol and try again.
-            </p>
-            <Link to="/">
-              <Button variant="hero" className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+      <main className="min-h-screen pt-24 pb-12 container mx-auto px-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-24 bg-muted rounded" />
+          <div className="h-40 bg-muted rounded" />
         </div>
       </main>
     );
   }
 
+  if (error || !data) {
+    return (
+      <main className="min-h-screen pt-24 pb-12 container mx-auto px-4 text-center">
+        <h2 className="text-2xl font-bold mb-4">Stock not found</h2>
+        <Link to="/" className="inline-flex items-center gap-2 text-primary">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+      </main>
+    );
+  }
+
+  const isPositive = data.change >= 0;
+
   return (
-    <main className="min-h-screen pt-24 pb-12">
-      <div className="container mx-auto px-4">
-        <StockHeader stock={stock} />
-        <StockMetrics stock={stock} />
-        <PriceChart stock={stock} />
-        <AnalysisSection stock={stock} />
+    <main className="min-h-screen pt-24 pb-12 container mx-auto px-4">
+
+      {/* Header */}
+      <div className="glass-card p-6 mb-6">
+        <h1 className="text-3xl font-bold mb-2">
+          {data.name} ({data.symbol})
+        </h1>
+
+        <p className="text-2xl font-semibold">
+          ₹{Number(data.price).toLocaleString("en-IN")}
+        </p>
+
+        <p className={isPositive ? "text-success" : "text-destructive"}>
+          {isPositive ? "+" : ""}
+          {data.change.toFixed(2)} ({data.pChange.toFixed(2)}%)
+        </p>
       </div>
+
+      {/* Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <Metric label="Price" value={data.price} />
+        <Metric label="Change" value={data.change} />
+        <Metric label="% Change" value={data.pChange} />
+
+      </div>
+
+      {/* Back */}
+      <Link to="/" className="inline-flex items-center gap-2 mt-8 text-primary">
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Link>
+
     </main>
+  );
+}
+
+function Metric({ label, value }: any) {
+  return (
+    <div className="glass-card p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-xl font-semibold">
+        {Number(value).toLocaleString("en-IN")}
+      </p>
+    </div>
   );
 }

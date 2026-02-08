@@ -2,8 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, TrendingUp, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { searchStocks, Stock } from '@/data/mockStocks';
 import { cn } from '@/lib/utils';
+import { searchStock } from '@/services/marketData';
+
+type Stock = {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+};
 
 interface StockSearchProps {
   className?: string;
@@ -20,18 +28,43 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (query.length >= 1) {
-      const debounce = setTimeout(() => {
-        const searchResults = searchStocks(query);
-        setResults(searchResults.slice(0, 6));
-        setIsOpen(searchResults.length > 0);
-        setSelectedIndex(-1);
-      }, 150);
-      return () => clearTimeout(debounce);
-    } else {
+    if (query.length < 2) {
       setResults([]);
       setIsOpen(false);
+      return;
     }
+
+    const debounce = setTimeout(async () => {
+      try {
+        const data = await searchStock(query);
+
+        const mapped: Stock[] = Array.isArray(data)
+          ? data.slice(0, 6).map((s: any) => ({
+            symbol: s.symbol || s.stock_symbol || s.name,
+            name: s.name || s.company_name || s.symbol,
+            price: Number(s.price || s.ltp || 0),
+            change: Number(s.change || 0),
+            changePercent: Number(s.changePercent || s.change_percent || 0),
+          }))
+          : [{
+            symbol: data.symbol || data.name,
+            name: data.name || data.symbol,
+            price: Number(data.price || data.ltp || 0),
+            change: Number(data.change || 0),
+            changePercent: Number(data.changePercent || 0),
+          }];
+
+        setResults(mapped);
+        setIsOpen(mapped.length > 0);
+        setSelectedIndex(-1);
+
+      } catch {
+        setResults([]);
+        setIsOpen(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounce);
   }, [query]);
 
   const handleSelect = (stock: Stock) => {
@@ -48,16 +81,19 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
         e.preventDefault();
         setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
         break;
+
       case 'ArrowUp':
         e.preventDefault();
         setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
         break;
+
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
           handleSelect(results[selectedIndex]);
         }
         break;
+
       case 'Escape':
         setIsOpen(false);
         break;
@@ -71,10 +107,11 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
           "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground",
           size === 'large' ? "w-5 h-5" : "w-4 h-4"
         )} />
+
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search stocks... (e.g., RELIANCE, TCS, INFY)"
+          placeholder="Search stocks... (e.g., RELIANCE, TCS)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -83,19 +120,18 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
           autoFocus={autoFocus}
           className={cn(
             "w-full bg-card/50 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all",
-            size === 'large' 
-              ? "h-14 pl-12 pr-4 text-lg rounded-xl" 
+            size === 'large'
+              ? "h-14 pl-12 pr-4 text-lg rounded-xl"
               : "h-11 pl-10 pr-4 rounded-lg"
           )}
         />
       </div>
 
-      {/* Autocomplete Dropdown */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border/50 rounded-xl shadow-2xl overflow-hidden z-50 animate-scale-in">
           {results.map((stock, index) => (
             <button
-              key={stock.symbol}
+              key={stock.symbol + index}
               onClick={() => handleSelect(stock)}
               className={cn(
                 "w-full px-4 py-3 flex items-center justify-between hover:bg-secondary/50 transition-colors text-left",
@@ -106,11 +142,15 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-primary" />
                 </div>
+
                 <div>
                   <p className="font-semibold text-foreground">{stock.symbol}</p>
-                  <p className="text-sm text-muted-foreground truncate max-w-[200px]">{stock.name}</p>
+                  <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                    {stock.name}
+                  </p>
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
                 <div className="text-right">
                   <p className="font-medium">₹{stock.price.toLocaleString('en-IN')}</p>
@@ -118,9 +158,11 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
                     "text-sm",
                     stock.change >= 0 ? "text-success" : "text-destructive"
                   )}>
-                    {stock.change >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                    {stock.change >= 0 ? '+' : ''}
+                    {stock.changePercent.toFixed(2)}%
                   </p>
                 </div>
+
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
             </button>
@@ -130,3 +172,4 @@ export function StockSearch({ className, autoFocus = false, size = 'default' }: 
     </div>
   );
 }
+

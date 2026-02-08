@@ -5,15 +5,7 @@ import path from "path";
 export default defineConfig({
   server: {
     host: true,
-    port: 8080,
-    proxy: {
-      "/yahoo": {
-        target: "https://query1.finance.yahoo.com",
-        changeOrigin: true,
-        secure: true,
-        rewrite: (p) => p.replace(/^\/yahoo/, ""),
-      },
-    },
+    port: 8080
   },
 
   plugins: [react()],

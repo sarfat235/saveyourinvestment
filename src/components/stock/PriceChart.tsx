@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { Stock, generatePriceHistory } from '@/data/mockStocks';
 import { cn } from '@/lib/utils';
+type Stock = any; const generatePriceHistory = (_s: any, _d: any) => []
 
 interface PriceChartProps {
   stock: Stock;
@@ -18,9 +18,9 @@ const timeframes = [
 
 export function PriceChart({ stock }: PriceChartProps) {
   const [selectedTimeframe, setSelectedTimeframe] = useState('1M');
-  
+
   const fullData = useMemo(() => generatePriceHistory(stock, 365), [stock]);
-  
+
   const data = useMemo(() => {
     const tf = timeframes.find(t => t.label === selectedTimeframe);
     if (!tf) return fullData;
@@ -85,8 +85,8 @@ export function PriceChart({ stock }: PriceChartProps) {
                 <stop offset="95%" stopColor={isPositive ? "hsl(142, 76%, 45%)" : "hsl(0, 84%, 60%)"} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 10, fill: 'hsl(215, 20%, 55%)' }}
@@ -97,7 +97,7 @@ export function PriceChart({ stock }: PriceChartProps) {
               }}
               interval="preserveStartEnd"
             />
-            <YAxis 
+            <YAxis
               domain={['dataMin - 50', 'dataMax + 50']}
               axisLine={false}
               tickLine={false}
@@ -124,9 +124,9 @@ export function PriceChart({ stock }: PriceChartProps) {
             <XAxis dataKey="date" hide />
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="volume" 
-              fill="hsl(222, 30%, 35%)" 
+            <Bar
+              dataKey="volume"
+              fill="hsl(222, 30%, 35%)"
               radius={[2, 2, 0, 0]}
             />
           </BarChart>

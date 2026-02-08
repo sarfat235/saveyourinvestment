@@ -1,6 +1,16 @@
-import { Stock } from '@/data/mockStocks';
 import { TrendingUp, TrendingDown, BarChart2, DollarSign, Activity, Target } from 'lucide-react';
-
+type Stock = {
+  marketCap: number;
+  pe: number;
+  eps: number;
+  volume: number;
+  avgVolume: number;
+  dayHigh: number;
+  dayLow: number;
+  weekHigh52: number;
+  weekLow52: number;
+  price: number;
+};
 interface StockMetricsProps {
   stock: Stock;
 }
@@ -24,11 +34,10 @@ function MetricCard({ label, value, icon, subValue, trend }: MetricCardProps) {
       </div>
       <p className="text-xl font-bold text-foreground">{value}</p>
       {subValue && (
-        <p className={`text-sm mt-1 ${
-          trend === 'up' ? 'text-success' : 
-          trend === 'down' ? 'text-destructive' : 
-          'text-muted-foreground'
-        }`}>
+        <p className={`text-sm mt-1 ${trend === 'up' ? 'text-success' :
+            trend === 'down' ? 'text-destructive' :
+              'text-muted-foreground'
+          }`}>
           {subValue}
         </p>
       )}
